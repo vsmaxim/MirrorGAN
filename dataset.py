@@ -80,7 +80,7 @@ class TextDataset(data.Dataset):
         self.data = []
         self.data_dir = data_dir
         if data_dir.find('birds') != -1:
-            self.bbox = self.load_bbox()
+            self.bbox = self.load_bbox(fraction)
         else:
             self.bbox = None
         split_dir = os.path.join(data_dir, split)
