@@ -17,7 +17,7 @@ __C.DATA_DIR = 'data/birds'
 __C.RNN_TYPE = 'gru'  # 'lstm'
 
 __C.TREE = edict()
-__C.TREE.BRANCH_NUM = 1
+__C.TREE.BRANCH_NUM = 3
 __C.TREE.BASE_SIZE = 64
 
 # Training options
@@ -30,7 +30,7 @@ __C.TRAIN.NET_D = ''
 __C.TRAIN.INIT_NET_G = ''
 __C.TRAIN.NEXT128_NET_G = ''
 __C.TRAIN.NEXT256_NET_G = ''
-__C.TRAIN.RNN_DEC = 'model/cnn_rnn_encoder02_2.h5'
+__C.TRAIN.RNN_DEC = ''
 
 __C.TRAIN.D_LR = 0.0001  #D learning rate
 __C.TRAIN.D_BETA1 = 0.5  #ADAM, beta1
