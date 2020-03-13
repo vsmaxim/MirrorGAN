@@ -39,14 +39,16 @@ def main():
         cfg.DATA_DIR,
         "train",
         base_size=cfg.TREE.BASE_SIZE,
-        transform=image_transform)
+        transform=image_transform,
+        fraction=cfg.TRAIN.FRACTION)
     assert dataset
 
     dataset_val = TextDataset(
         cfg.DATA_DIR,
         "test",
         base_size=cfg.TREE.BASE_SIZE,
-        transform=image_transform)
+        transform=image_transform,
+        fraction=cfg.TRAIN.FRACTION)
     assert dataset_val
 
     traingenerator = DataGenerator_encode(
