@@ -27,6 +27,7 @@ __C.TRAIN.MAX_EPOCH = 1
 __C.TRAIN.FLAG = True
 #load model path（weight onry）
 __C.TRAIN.NET_D = ''
+__C.TRAIN.FRACTION = 0.25
 __C.TRAIN.INIT_NET_G = ''
 __C.TRAIN.NEXT128_NET_G = ''
 __C.TRAIN.NEXT256_NET_G = ''

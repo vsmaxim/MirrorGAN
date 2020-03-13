@@ -62,7 +62,8 @@ class TextDataset(data.Dataset):
                  split='train',
                  base_size=64,
                  transform=None,
-                 target_transform=None):
+                 target_transform=None,
+                 fraction=1):
         self.transform = transform
         self.norm = transforms.Compose([
             transforms.ToTensor(),
@@ -90,15 +91,18 @@ class TextDataset(data.Dataset):
         self.class_id = self.load_class_id(split_dir, len(self.filenames))
         self.number_example = len(self.filenames)
 
-    def load_bbox(self):
+    def load_bbox(self, fraction):
         data_dir = self.data_dir
         bbox_path = os.path.join(data_dir, 'CUB_200_2011/bounding_boxes.txt')
         df_bounding_boxes = pd.read_csv(
             bbox_path, delim_whitespace=True, header=None).astype(int)
         #
         filepath = os.path.join(data_dir, 'CUB_200_2011/images.txt')
-        df_filenames = \
-            pd.read_csv(filepath, delim_whitespace=True, header=None)
+
+        df_filenames = pd\
+            .read_csv(filepath, delim_whitespace=True, header=None)\
+            .sample(frac=fraction).reset_index(drop=True)
+
         filenames = df_filenames[1].tolist()
         print('Total filenames: ', len(filenames), filenames[0])
         #
