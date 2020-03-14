@@ -125,6 +125,8 @@ class TextDataset(data.Dataset):
             key = file_name[:-4]
             filename_bbox[key] = bbox
 
+        print(filename_bbox)
+
         return filename_bbox
 
     def load_captions(self, data_dir, filenames):
