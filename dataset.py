@@ -291,10 +291,14 @@ class TextDataset(data.Dataset):
         sent_ix = random.randint(0, self.embeddings_num)
         new_sent_ix = index * self.embeddings_num + sent_ix
         caps, cap_len = self.get_caption(new_sent_ix)
+
         """
         imgs : numpy.array shape(h, w, c)のリスト　サイズ違い3枚を出力（64, 128, 256）
         caps: 二次元のarray shape(seq, 1) 
         """
+
+        print(imgs, caps, cap_len, cls_id, key)
+
         return imgs, caps, cap_len, cls_id, key
 
     def __len__(self):
