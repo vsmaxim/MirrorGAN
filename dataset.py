@@ -94,9 +94,11 @@ class TextDataset(data.Dataset):
     def load_bbox(self, fraction):
         data_dir = self.data_dir
         bbox_path = os.path.join(data_dir, 'CUB_200_2011/bounding_boxes.txt')
-        df_bounding_boxes = pd.read_csv(
-            bbox_path, delim_whitespace=True, header=None).astype(int)
-        #
+
+        df_bounding_boxes = pd\
+            .read_csv(bbox_path, delim_whitespace=True, header=None)\
+            .astype(int)
+
         filepath = os.path.join(data_dir, 'CUB_200_2011/images.txt')
 
         df_filenames = pd\
@@ -105,16 +107,15 @@ class TextDataset(data.Dataset):
 
         filenames = df_filenames[1].tolist()
         print('Total filenames: ', len(filenames), filenames[0])
-        #
-        filename_bbox = {img_file[:-4]: [] for img_file in filenames}
-        numImgs = len(filenames)
-        for i in range(0, numImgs):
-            # bbox = [x-left, y-top, width, height]
-            bbox = df_bounding_boxes.iloc[i][1:].tolist()
 
-            key = filenames[i][:-4]
+        filename_bbox = {}
+
+        for index, row in df_filenames:
+            file_index, file_name = row
+            bbox = df_bounding_boxes.iloc[file_index - 1][1:].tolist()
+            key = file_name[:-4]
             filename_bbox[key] = bbox
-        #
+
         return filename_bbox
 
     def load_captions(self, data_dir, filenames):
