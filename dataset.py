@@ -220,8 +220,8 @@ class TextDataset(data.Dataset):
     def load_text_data(self, data_dir, split):
         filepath = os.path.join(data_dir, 'captions.pickle')
         
-        train_names = self.train_df[1]
-        test_names = self.test_df[1]
+        train_names = list(self.train_df[1])
+        test_names = list(self.test_df[1])
 
         if not os.path.isfile(filepath):
             train_captions = self.load_captions(data_dir, train_names)
