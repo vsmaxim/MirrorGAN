@@ -250,7 +250,7 @@ class TextDataset(data.Dataset):
 
         image_class_df = pd.read_csv(classes_path, delim_whitespace=True, header=None)
 
-        return [image_class_df.iloc[index] for index in self.fileindexes]        
+        return [image_class_df[1][index] for index in self.fileindexes]        
 
     def get_caption(self, sent_ix):
         # a list of indices for a sentence
