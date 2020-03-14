@@ -83,7 +83,7 @@ class TextDataset(data.Dataset):
 
         self.filenames_df = self.load_filenames(fraction)
         self.filenames = self.filenames_df[1]
-        self.fileindexes = self.filenames_df[0] - 1
+        self.fileindexes = self.filenames_df[0].astypes(int) - 1
         self.train_df, self.test_df = self.load_test_train_splitted_data()
 
         if data_dir.find('birds') != -1:
