@@ -118,7 +118,7 @@ class TextDataset(data.Dataset):
         with open(filepath) as f:
           instances_json = json.load(f)
 
-        df_instances = pd.DataFrame(json_dataset['instances'])
+        df_instances = pd.DataFrame(json_dataset['annotations'])
         df_instances = df_instances[df_instances['image_id'].isin(sampled_ids)]
         df_instances.set_index('image_id')
 
