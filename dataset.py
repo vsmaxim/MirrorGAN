@@ -245,13 +245,8 @@ class TextDataset(data.Dataset):
         return filenames, captions, ixtoword, wordtoix, n_words
 
     def load_class_id(self):
-        classes_path = os.path.join(self.data_dir, 'CUB_200_2011/classes.txt')
         image_class_path = os.path.join(self.data_dir, 'CUB_200_2011/image_class_labels.txt')
-
-        image_class_df = pd.read_csv(classes_path, delim_whitespace=True, header=None)
-
-        print(image_class_df)
-
+        image_class_df = pd.read_csv(image_class_path, delim_whitespace=True, header=None)
         return [image_class_df[1][index] for index in self.fileindexes]        
 
     def get_caption(self, sent_ix):
