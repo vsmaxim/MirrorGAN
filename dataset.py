@@ -110,7 +110,7 @@ class TextDataset(data.Dataset):
 
         filename_bbox = {}
 
-        for index, row in df_filenames:
+        for index, row in df_filenames.iterrows():
             file_index, file_name = row
             bbox = df_bounding_boxes.iloc[file_index - 1][1:].tolist()
             key = file_name[:-4]
