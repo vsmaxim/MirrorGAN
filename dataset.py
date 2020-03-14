@@ -83,100 +83,71 @@ class TextDataset(data.Dataset):
         self.data = []
         self.data_dir = data_dir
 
-        self.filenames_df = self.load_filenames(fraction)
-        self.filenames = self.filenames_df[1]
-        self.fileindexes = self.filenames_df[0].astype(int) - 1
+        self.filenames_df, self.annotations_df = self.load_filenames_and_annotations(fraction)
         self.train_df, self.test_df = self.load_test_train_splitted_data()
-
-        if data_dir.find('birds') != -1:
-            self.bbox = self.load_bbox()
-        else:
-            self.bbox = None
 
         split_dir = os.path.join(data_dir, split)
 
-        self.filenames, self.captions, self.ixtoword, \
-            self.wordtoix, self.n_words = self.load_text_data(data_dir, split)
-
-        self.class_id = self.load_class_id()
+        self.captions, self.ixtoword, \
+        self.wordtoix, self.n_words = self.load_text_data(data_dir, split)
 
         self.number_example = len(self.filenames)
 
-    def load_filenames(self, fraction):
-        filepath = os.path.join(self.data_dir, 'CUB_200_2011/images.txt')
-        df_filenames = pd\
-            .read_csv(filepath, delim_whitespace=True, header=None)\
-            .sample(frac=fraction).reset_index(drop=True)
+    def load_filenames_and_annotations(self, fraction):
+        filepath = os.path.join(self.data_dir, 'cocodataset/stuff_train2017.json')
 
-        df_filenames[1] = df_filenames[1].apply(lambda x: x[:-4])
+        with open(filepath) as f:
+          json_dataset = json.load(f)
+        
+        df_filenames = pd.DataFrame(json_dataset['images'])\
+          .sample(frac=fraction)\
+          .reset_index(drop=True)
 
-        return df_filenames
+        sampled_ids = df_filenames['id']
+        
+        df_annotations = pd.DataFrame(json_dataset['annotations'])
+        df_annotations = df_annotations[df_annotations['image_id'].isin(sampled_ids)]
+        df_annotations.set_index('image_id')
 
-    def load_bbox(self):
-        data_dir = self.data_dir
-        bbox_path = os.path.join(data_dir, 'CUB_200_2011/bounding_boxes.txt')
+        return df_filenames, df_annotations
 
-        df_bounding_boxes = pd\
-            .read_csv(bbox_path, delim_whitespace=True, header=None)\
-            .astype(int)
-
-        filename_bbox = {}
-
-        for index, row in self.filenames_df.iterrows():
-            file_index, file_name = row
-            bbox = df_bounding_boxes.iloc[file_index - 1][1:].tolist()
-            key = file_name
-            filename_bbox[key] = bbox
-
-        return filename_bbox
-
-    def load_captions(self, data_dir, filenames):
+    def load_captions(self, filenames_df):
         all_captions = []
-        for filename in filenames:
-            cap_path = '%s/text/%s.txt' % (data_dir, filename)
-            with open(cap_path, "r", encoding="utf-8") as f:
-                captions = f.read().split('\n')
-                cnt = 0
-                for cap in captions:
-                    if len(cap) == 0:
-                        continue
-                    cap = cap.replace("\ufffd\ufffd", " ")
-                    # picks out sequences of alphanumeric characters as tokens
-                    # and drops everything else
-                    tokenizer = RegexpTokenizer(r'\w+')
-                    tokens = tokenizer.tokenize(cap.lower())
-                    # print('tokens', tokens)
-                    if len(tokens) == 0:
-                        print('cap', cap)
-                        continue
 
-                    tokens_new = []
-                    for t in tokens:
-                        t = t.encode('ascii', 'ignore').decode('ascii')
-                        if len(t) > 0:
-                            tokens_new.append(t)
-                    all_captions.append(tokens_new)
-                    cnt += 1
-                    if cnt == self.embeddings_num:
-                        break
-                if cnt < self.embeddings_num:
-                    print('ERROR: the captions for %s less than %d' %
-                          (filename, cnt))
+        for file_id in filenames_df:
+            rows = self.annotation_df[self.annotation_df['id'] == file_id]
+
+            for cnt, caption in enumerate(rows['caption']):
+                # Replace all unnecessary 
+                caption = caption.replace('\ufffd\ufffd', ' ')
+                tokenizer = RegexpTokenizer(r'\w+')
+                tokens = tokenizer.tokenize(caption.lower())
+
+                all_captions.append([
+                  token.encode('ascii', 'ignore').decode('ascii')
+                  for token in tokens
+                ])
+
+                if cnt == self.embeddings_num:
+                    break
+
         return all_captions
 
     def build_dictionary(self, train_captions, test_captions):
         word_counts = defaultdict(float)
         captions = train_captions + test_captions
+
         for sent in captions:
             for word in sent:
                 word_counts[word] += 1
 
-        vocab = [w for w in word_counts if word_counts[w] >= 0]
+        vocab = word_count.keys()
 
         ixtoword = {}
         ixtoword[0] = '<end>'
         wordtoix = {}
         wordtoix['<end>'] = 0
+
         ix = 1
         for w in vocab:
             wordtoix[w] = ix
@@ -213,13 +184,10 @@ class TextDataset(data.Dataset):
 
     def load_text_data(self, data_dir, split):
         filepath = os.path.join(data_dir, 'captions.pickle')
-        
-        train_names = list(self.train_df[1])
-        test_names = list(self.test_df[1])
 
         if not os.path.isfile(filepath):
-            train_captions = self.load_captions(data_dir, train_names)
-            test_captions = self.load_captions(data_dir, test_names)
+            train_captions = self.load_captions(self.train_df)
+            test_captions = self.load_captions(self.test_df)
 
             train_captions, test_captions, ixtoword, wordtoix, n_words = \
                 self.build_dictionary(train_captions, test_captions)
@@ -241,16 +209,9 @@ class TextDataset(data.Dataset):
             # a list of list: each list contains
             # the indices of words in a sentence
             captions = train_captions
-            filenames = train_names
         else:  # split=='test'
             captions = test_captions
-            filenames = test_names
-        return filenames, captions, ixtoword, wordtoix, n_words
-
-    def load_class_id(self):
-        image_class_path = os.path.join(self.data_dir, 'CUB_200_2011/image_class_labels.txt')
-        image_class_df = pd.read_csv(image_class_path, delim_whitespace=True, header=None)
-        return [image_class_df[1][index] for index in self.fileindexes]        
+        return captions, ixtoword, wordtoix, n_words
 
     def get_caption(self, sent_ix):
         # a list of indices for a sentence
@@ -274,32 +235,27 @@ class TextDataset(data.Dataset):
 
     def __getitem__(self, index):
         #
-        key = self.filenames[index]
-        cls_id = self.class_id[index]
-        #
-        if self.bbox is not None:
-            bbox = self.bbox[key]
-            data_dir = '%s/CUB_200_2011' % self.data_dir
-        else:
-            bbox = None
-            data_dir = self.data_dir
-        #
-        img_name = '%s/images/%s.jpg' % (data_dir, key)
+        file_row = self.filenames_df.iloc[index]
+        
+        key = file_row['id']
+        filename = file_row['file_name']
+        bbox = self.annotations_df[key]['bbox']
+        img_name = os.path.join(self.data_dir, 'cocodataset/images/', filename)
+        
         imgs = get_imgs(
-            img_name, self.imsize, bbox, self.transform, normalize=self.norm)
+            img_name,
+            self.imsize,
+            bbox,
+            self.transform,
+            normalize=self.norm,
+        )
+
         # random select a sentence
         sent_ix = random.randint(0, self.embeddings_num)
         new_sent_ix = index * self.embeddings_num + sent_ix
         caps, cap_len = self.get_caption(new_sent_ix)
 
-        """
-        imgs : numpy.array shape(h, w, c)のリスト　サイズ違い3枚を出力（64, 128, 256）
-        caps: 二次元のarray shape(seq, 1) 
-        """
-
-        print(imgs, caps, cap_len, cls_id, key)
-
-        return imgs, caps, cap_len, cls_id, key
+        return imgs, caps, cap_len, key
 
     def __len__(self):
         return len(self.filenames)
