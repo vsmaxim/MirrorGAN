@@ -12,7 +12,7 @@ cfg = __C
 # Dataset name: flowers, birds
 __C.DATASET_NAME = 'birds'
 __C.CONFIG_NAME = ''
-__C.DATA_DIR = 'data/birds'
+__C.DATA_DIR = 'data/cocodataset'
 
 __C.RNN_TYPE = 'gru'  # 'lstm'
 
