@@ -96,7 +96,7 @@ class TextDataset(data.Dataset):
         self.filenames, self.captions, self.ixtoword, \
             self.wordtoix, self.n_words = self.load_text_data(data_dir, split)
 
-        self.class_id = self.load_class_id(split_dir, len(self.filenames))
+        self.class_id = self.load_class_id()
         self.number_example = len(self.filenames)
 
     def load_filenames(self, fraction):
