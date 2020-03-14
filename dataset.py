@@ -107,7 +107,7 @@ class TextDataset(data.Dataset):
 
         return df_filenames
 
-    def load_bbox(self, fraction):
+    def load_bbox(self):
         data_dir = self.data_dir
         bbox_path = os.path.join(data_dir, 'CUB_200_2011/bounding_boxes.txt')
 
