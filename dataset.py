@@ -97,7 +97,7 @@ class TextDataset(data.Dataset):
         self.number_example = len(self.filenames)
 
     def load_filenames_and_annotations(self, fraction):
-        filepath = os.path.join(self.data_dir, 'cocodataset/captions_train2014.json')
+        filepath = os.path.join(self.data_dir, 'cocodataset/annotations/captions_train2014.json')
 
         with open(filepath) as f:
           json_dataset = json.load(f)
