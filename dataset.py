@@ -100,12 +100,6 @@ class TextDataset(data.Dataset):
 
         self.class_id = self.load_class_id()
 
-        print(self.filenames)
-        print(len(self.filenames))
-
-        print(self.captions)
-        print(len(self.captions))
-
         self.number_example = len(self.filenames)
 
     def load_filenames(self, fraction):
