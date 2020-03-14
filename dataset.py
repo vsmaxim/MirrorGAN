@@ -83,7 +83,10 @@ class TextDataset(data.Dataset):
         self.data = []
         self.data_dir = data_dir
 
-        self.filenames_df, self.annotations_df = self.load_filenames_and_annotations(fraction)
+        self.filenames_df, \
+        self.annotations_df, \
+        self.instances_df = self.load_filenames_and_annotations(fraction)
+        
         self.train_df, self.test_df = self.load_test_train_splitted_data()
 
         split_dir = os.path.join(data_dir, split)
@@ -94,7 +97,7 @@ class TextDataset(data.Dataset):
         self.number_example = len(self.filenames)
 
     def load_filenames_and_annotations(self, fraction):
-        filepath = os.path.join(self.data_dir, 'cocodataset/stuff_train2017.json')
+        filepath = os.path.join(self.data_dir, 'cocodataset/captions_train2014.json')
 
         with open(filepath) as f:
           json_dataset = json.load(f)
@@ -109,7 +112,16 @@ class TextDataset(data.Dataset):
         df_annotations = df_annotations[df_annotations['image_id'].isin(sampled_ids)]
         df_annotations.set_index('image_id')
 
-        return df_filenames, df_annotations
+        instances_filepath = os.path.join(self.data_dir, 'cocodataset/annotations/instances_train2014.json')
+
+        with open(filepath) as f:
+          instances_json = json.load(f)
+
+        df_instances = pd.DataFrame(json_dataset['instances'])
+        df_instances = df_instances[df_instances['image_id'].isin(sampled_ids)]
+        df_instances.set_index('image_id')
+
+        return df_filenames, df_annotations, df_instances
 
     def load_captions(self, filenames_df):
         all_captions = []
@@ -239,7 +251,7 @@ class TextDataset(data.Dataset):
         
         key = file_row['id']
         filename = file_row['file_name']
-        bbox = self.annotations_df[key]['bbox']
+        bbox = self.instances_df[key]['bbox']
         img_name = os.path.join(self.data_dir, 'cocodataset/images/', filename)
         
         imgs = get_imgs(
