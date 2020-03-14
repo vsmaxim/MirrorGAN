@@ -65,10 +65,12 @@ class TextDataset(data.Dataset):
                  target_transform=None,
                  fraction=1):
         self.transform = transform
+
         self.norm = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         ])
+
         self.target_transform = target_transform
         self.embeddings_num = cfg.TEXT.CAPTIONS_PER_IMAGE
 
@@ -122,10 +124,8 @@ class TextDataset(data.Dataset):
         for index, row in self.filenames_df.iterrows():
             file_index, file_name = row
             bbox = df_bounding_boxes.iloc[file_index - 1][1:].tolist()
-            key = file_name[:-4]
+            key = file_name
             filename_bbox[key] = bbox
-
-        print(filename_bbox)
 
         return filename_bbox
 
