@@ -97,7 +97,7 @@ class TextDataset(data.Dataset):
         self.number_example = len(self.filenames)
 
     def load_filenames_and_annotations(self, fraction):
-        filepath = os.path.join(self.data_dir, 'cocodataset/annotations/captions_train2014.json')
+        filepath = os.path.join(self.data_dir, 'annotations/captions_train2014.json')
 
         with open(filepath) as f:
           json_dataset = json.load(f)
@@ -112,7 +112,7 @@ class TextDataset(data.Dataset):
         df_annotations = df_annotations[df_annotations['image_id'].isin(sampled_ids)]
         df_annotations.set_index('image_id')
 
-        instances_filepath = os.path.join(self.data_dir, 'cocodataset/annotations/instances_train2014.json')
+        instances_filepath = os.path.join(self.data_dir, 'annotations/instances_train2014.json')
 
         with open(filepath) as f:
           instances_json = json.load(f)
@@ -252,7 +252,7 @@ class TextDataset(data.Dataset):
         key = file_row['id']
         filename = file_row['file_name']
         bbox = self.instances_df[key]['bbox']
-        img_name = os.path.join(self.data_dir, 'cocodataset/images/', filename)
+        img_name = os.path.join(self.data_dir, 'images/', filename)
         
         imgs = get_imgs(
             img_name,
