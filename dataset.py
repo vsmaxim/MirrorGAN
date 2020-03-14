@@ -99,6 +99,13 @@ class TextDataset(data.Dataset):
             self.wordtoix, self.n_words = self.load_text_data(data_dir, split)
 
         self.class_id = self.load_class_id()
+
+        print(self.filenames)
+        print(len(self.filenames))
+
+        print(self.captions)
+        print(len(self.captions))
+
         self.number_example = len(self.filenames)
 
     def load_filenames(self, fraction):
