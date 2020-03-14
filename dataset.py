@@ -10,6 +10,7 @@ import torch
 import torch.utils.data as data
 from torch.autograd import Variable
 import torchvision.transforms as transforms
+from sklearn.model_selection import train_test_split
 
 import json
 import os
@@ -24,6 +25,10 @@ import pickle
 def get_imgs(img_path, imsize, bbox=None, transform=None, normalize=None):
     img = Image.open(img_path).convert('RGB')
     width, height = img.size
+    # HAHA
+    if (width * height) == 0:
+        return
+    
     if bbox is not None:
         r = int(np.maximum(bbox[2], bbox[3]) * 0.75)
         center_x = int((2 * bbox[0] + bbox[2]) / 2)
@@ -33,7 +38,12 @@ def get_imgs(img_path, imsize, bbox=None, transform=None, normalize=None):
         x1 = np.maximum(0, center_x - r)
         x2 = np.minimum(width, center_x + r)
         img = img.crop([x1, y1, x2, y2])
-
+    
+    width, height = img.size
+    
+    if (width * height) == 0:
+        return
+    
     if transform is not None:
         img = transform(img)
 
@@ -95,7 +105,7 @@ class TextDataset(data.Dataset):
         self.captions, self.ixtoword, \
         self.wordtoix, self.n_words = self.load_text_data(data_dir, split)
 
-        self.number_example = len(self.filenames)
+        self.number_example = len(self.filenames_df)
 
     def load_filenames_and_annotations(self, fraction):
         filepath = os.path.join(self.data_dir, 'annotations/captions_train2014.json')
@@ -111,14 +121,16 @@ class TextDataset(data.Dataset):
         
         df_annotations = pd.DataFrame(json_dataset['annotations'])
         df_annotations = df_annotations[df_annotations['image_id'].isin(sampled_ids)]
-        df_annotations.set_index('image_id')
 
         instances_filepath = os.path.join(self.data_dir, 'annotations/instances_train2014.json')
 
-        with open(filepath) as f:
+        with open(instances_filepath) as f:
           instances_json = json.load(f)
 
-        df_instances = pd.DataFrame(json_dataset['annotations'])
+        df_instances = pd.DataFrame(instances_json['annotations'])
+        
+        print(df_instances.keys())
+        
         df_instances = df_instances[df_instances['image_id'].isin(sampled_ids)]
         df_instances.set_index('image_id')
 
@@ -127,9 +139,9 @@ class TextDataset(data.Dataset):
     def load_captions(self, filenames_df):
         all_captions = []
 
-        for file_id in filenames_df:
-            rows = self.annotation_df[self.annotation_df['id'] == file_id]
-
+        for file_id in filenames_df['id']:
+            rows = self.annotations_df[self.annotations_df['image_id'] == file_id]
+            
             for cnt, caption in enumerate(rows['caption']):
                 # Replace all unnecessary 
                 caption = caption.replace('\ufffd\ufffd', ' ')
@@ -154,7 +166,7 @@ class TextDataset(data.Dataset):
             for word in sent:
                 word_counts[word] += 1
 
-        vocab = word_count.keys()
+        vocab = word_counts.keys()
 
         ixtoword = {}
         ixtoword[0] = '<end>'
@@ -191,33 +203,31 @@ class TextDataset(data.Dataset):
         ]
     
     def load_test_train_splitted_data(self):
-        train = self.filenames_df.sample(frac=0.8, random_state=40)
-        test = self.filenames_df.drop(train)
-        return train, test
+        return train_test_split(self.filenames_df, test_size=0.2)
 
     def load_text_data(self, data_dir, split):
         filepath = os.path.join(data_dir, 'captions.pickle')
 
-        if not os.path.isfile(filepath):
-            train_captions = self.load_captions(self.train_df)
-            test_captions = self.load_captions(self.test_df)
+#         if not os.path.isfile(filepath):
+        train_captions = self.load_captions(self.train_df)
+        test_captions = self.load_captions(self.test_df)
 
-            train_captions, test_captions, ixtoword, wordtoix, n_words = \
+        train_captions, test_captions, ixtoword, wordtoix, n_words = \
                 self.build_dictionary(train_captions, test_captions)
-            with open(filepath, 'wb') as f:
-                pickle.dump(
-                    [train_captions, test_captions, ixtoword, wordtoix],
-                    f,
-                    protocol=2)
-                print('Save to: ', filepath)
-        else:
-            with open(filepath, 'rb') as f:
-                x = pickle.load(f)
-                train_captions, test_captions = x[0], x[1]
-                ixtoword, wordtoix = x[2], x[3]
-                del x
-                n_words = len(ixtoword)
-                print('Load from: ', filepath)
+#             with open(filepath, 'wb') as f:
+#                 pickle.dump(
+#                     [train_captions, test_captions, ixtoword, wordtoix],
+#                     f,
+#                     protocol=2)
+#                 print('Save to: ', filepath)
+#         else:
+#             with open(filepath, 'rb') as f:
+#                 x = pickle.load(f)
+#                 train_captions, test_captions = x[0], x[1]
+#                 ixtoword, wordtoix = x[2], x[3]
+#                 del x
+#                 n_words = len(ixtoword)
+#                 print('Load from: ', filepath)
         if split == 'train':
             # a list of list: each list contains
             # the indices of words in a sentence
@@ -251,9 +261,11 @@ class TextDataset(data.Dataset):
         file_row = self.filenames_df.iloc[index]
         
         key = file_row['id']
+        
         filename = file_row['file_name']
-        bbox = self.instances_df[key]['bbox']
-        img_name = os.path.join(self.data_dir, 'images/', filename)
+        bbox = self.instances_df['bbox'].get(key)
+        
+        img_name = os.path.join(self.data_dir, 'train2014/', filename)
         
         imgs = get_imgs(
             img_name,
@@ -271,4 +283,4 @@ class TextDataset(data.Dataset):
         return imgs, caps, cap_len, key
 
     def __len__(self):
-        return len(self.filenames)
+        return len(self.filenames_df)

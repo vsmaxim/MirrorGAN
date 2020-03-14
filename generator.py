@@ -20,8 +20,10 @@ class DataGenerator(object):
 
     def __next__(self):
         img64_ar = np.empty((0, self.imsize[0], self.imsize[0], 3))
+
         if cfg.TREE.BRANCH_NUM > 1:
             img128_ar = np.empty((0, self.imsize[1], self.imsize[1], 3))
+
         if cfg.TREE.BRANCH_NUM > 2:
             img256_ar = np.empty((0, self.imsize[2], self.imsize[2], 3))
 
@@ -30,18 +32,27 @@ class DataGenerator(object):
             self.batchsize,
             cfg.TEXT.WORDS_NUM,
         ))
-        keys_list = []
-        for i in range(self.batchsize):
-            imgs, captions, cap_lens, keys = self.dataset[self.count]
-            self.count += 1
-            if self.count == self.maxcount:
-                self.count = 0
 
+        keys_list = []
+
+        for i in range(self.batchsize):
+            result = self.dataset[self.count]
+            
+            while result is None:
+                self.count = (self.count + 1) % self.maxcount
+                result = self.dataset[self.count]
+                
+            imgs, captions, cap_lens, keys = result
+            self.count = (self.count + 1) % self.maxcount
+            
             img64_ar = np.vstack((img64_ar, imgs[0][np.newaxis, :]))
+
             if cfg.TREE.BRANCH_NUM > 1:
                 img128_ar = np.vstack((img128_ar, imgs[1][np.newaxis, :]))
+
             if cfg.TREE.BRANCH_NUM > 2:
                 img256_ar = np.vstack((img256_ar, imgs[2][np.newaxis, :]))
+
             captions_ar = np.vstack((captions_ar, captions[np.newaxis, :]))
             zero_count = int(sum(captions == 0))
             captions_ar_prezeropad[i, zero_count:] = captions.reshape(
@@ -105,8 +116,14 @@ class DataGenerator_encode(object):
         img256_ar = np.empty((0, self.imsize[2], self.imsize[2], 3))
         captions_ar = np.empty((0, cfg.TEXT.WORDS_NUM, 1))
         for _ in range(self.batchsize):
-            imgs, captions, cap_lens, keys = self.dataset[
-                self.count]
+            result = self.dataset[self.count]
+            self.count = (self.count + 1) % self.maxcount
+            
+            while result is None:
+                result = self.dataset[self.count]
+                self.count = (self.count + 1) % self.maxcount 
+            
+            imgs, captions, cap_lens, keys = result
             self.count += 1
             if self.count == self.maxcount:
                 self.count = 0
