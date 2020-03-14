@@ -73,16 +73,24 @@ class TextDataset(data.Dataset):
         self.embeddings_num = cfg.TEXT.CAPTIONS_PER_IMAGE
 
         self.imsize = []
+
         for i in range(cfg.TREE.BRANCH_NUM):
             self.imsize.append(base_size)
             base_size = base_size * 2
 
         self.data = []
         self.data_dir = data_dir
+
+        self.filenames_df = self.load_filenames(fraction)
+        self.filenames = self.filenames_df[1]
+        self.fileindexes = self.filenames_df[0] - 1
+        self.train_df, self.test_df = self.load_test_train_splitted_data()
+
         if data_dir.find('birds') != -1:
-            self.bbox = self.load_bbox(fraction)
+            self.bbox = self.load_bbox()
         else:
             self.bbox = None
+
         split_dir = os.path.join(data_dir, split)
 
         self.filenames, self.captions, self.ixtoword, \
@@ -90,6 +98,14 @@ class TextDataset(data.Dataset):
 
         self.class_id = self.load_class_id(split_dir, len(self.filenames))
         self.number_example = len(self.filenames)
+
+    def load_filenames(self, fraction):
+        filepath = os.path.join(self.data_dir, 'CUB_200_2011/images.txt')
+        df_filenames = pd\
+            .read_csv(filepath, delim_whitespace=True, header=None)\
+            .sample(frac=fraction).reset_index(drop=True)
+
+        return df_filenames
 
     def load_bbox(self, fraction):
         data_dir = self.data_dir
@@ -99,18 +115,9 @@ class TextDataset(data.Dataset):
             .read_csv(bbox_path, delim_whitespace=True, header=None)\
             .astype(int)
 
-        filepath = os.path.join(data_dir, 'CUB_200_2011/images.txt')
-
-        df_filenames = pd\
-            .read_csv(filepath, delim_whitespace=True, header=None)\
-            .sample(frac=fraction).reset_index(drop=True)
-
-        filenames = df_filenames[1].tolist()
-        print('Total filenames: ', len(filenames), filenames[0])
-
         filename_bbox = {}
 
-        for index, row in df_filenames.iterrows():
+        for index, row in self.filenames_df.iterrows():
             file_index, file_name = row
             bbox = df_bounding_boxes.iloc[file_index - 1][1:].tolist()
             key = file_name[:-4]
@@ -120,8 +127,8 @@ class TextDataset(data.Dataset):
 
     def load_captions(self, data_dir, filenames):
         all_captions = []
-        for i in range(len(filenames)):
-            cap_path = '%s/text/%s.txt' % (data_dir, filenames[i])
+        for filename in filenames:
+            cap_path = '%s/text/%s.txt' % (data_dir, filename)
             with open(cap_path, "r", encoding="utf-8") as f:
                 captions = f.read().split('\n')
                 cnt = 0
@@ -149,7 +156,7 @@ class TextDataset(data.Dataset):
                         break
                 if cnt < self.embeddings_num:
                     print('ERROR: the captions for %s less than %d' %
-                          (filenames[i], cnt))
+                          (filename, cnt))
         return all_captions
 
     def build_dictionary(self, train_captions, test_captions):
@@ -193,11 +200,18 @@ class TextDataset(data.Dataset):
             train_captions_new, test_captions_new, ixtoword, wordtoix,
             len(ixtoword)
         ]
+    
+    def load_test_train_splitted_data(self):
+        train = self.filenames_df.sample(frac=0.8, random_state=40)
+        test = self.filenames_df.drop(train)
+        return train, test
 
     def load_text_data(self, data_dir, split):
         filepath = os.path.join(data_dir, 'captions.pickle')
-        train_names = self.load_filenames(data_dir, 'train')
-        test_names = self.load_filenames(data_dir, 'test')
+        
+        train_names = self.train_df[1]
+        test_names = self.test_df[1]
+
         if not os.path.isfile(filepath):
             train_captions = self.load_captions(data_dir, train_names)
             test_captions = self.load_captions(data_dir, test_names)
@@ -228,23 +242,13 @@ class TextDataset(data.Dataset):
             filenames = test_names
         return filenames, captions, ixtoword, wordtoix, n_words
 
-    def load_class_id(self, data_dir, total_num):
-        if os.path.isfile(data_dir + '/class_info.pickle'):
-            with open(data_dir + '/class_info.pickle', 'rb') as f:
-                class_id = pickle.load(f, encoding='latin1')
-        else:
-            class_id = np.arange(total_num)
-        return class_id
+    def load_class_id(self):
+        classes_path = os.path.join(self.data_dir, 'CUB_200_2011/classes.txt')
+        image_class_path = os.path.join(self.data_dir, 'CUB_200_2011/image_class_labels.txt')
 
-    def load_filenames(self, data_dir, split):
-        filepath = '%s/%s/filenames.pickle' % (data_dir, split)
-        if os.path.isfile(filepath):
-            with open(filepath, 'rb') as f:
-                filenames = pickle.load(f)
-            print('Load filenames from: %s (%d)' % (filepath, len(filenames)))
-        else:
-            filenames = []
-        return filenames
+        image_class_df = pd.read_csv(classes_path, delim_whitespace=True, header=None)
+
+        return [image_class_df[index] for index in self.fileindexes]        
 
     def get_caption(self, sent_ix):
         # a list of indices for a sentence
