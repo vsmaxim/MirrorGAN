@@ -82,7 +82,7 @@ class TextDataset(data.Dataset):
         self.data_dir = data_dir
 
         self.filenames_df = self.load_filenames(fraction)
-        self.filenames = [filename[:-4] for filename in self.filenames_df[1]]
+        self.filenames = self.filenames_df[1]
         self.fileindexes = self.filenames_df[0] - 1
         self.train_df, self.test_df = self.load_test_train_splitted_data()
 
@@ -104,6 +104,8 @@ class TextDataset(data.Dataset):
         df_filenames = pd\
             .read_csv(filepath, delim_whitespace=True, header=None)\
             .sample(frac=fraction).reset_index(drop=True)
+
+        df_filenames[1] = df_filenames[1].apply(lambda x: x[:-4])
 
         return df_filenames
 
