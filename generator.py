@@ -38,10 +38,6 @@ class DataGenerator(object):
         for i in range(self.batchsize):
             result = self.dataset[self.count]
             
-            while result is None:
-                self.count = (self.count + 1) % self.maxcount
-                result = self.dataset[self.count]
-                
             imgs, captions, cap_lens, keys = result
             self.count = (self.count + 1) % self.maxcount
             

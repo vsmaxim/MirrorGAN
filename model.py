@@ -44,6 +44,14 @@ class GLU(Layer):
         return (input_shape[0], *self.output_dim)
 
 
+class DebugDense(Dense):
+    
+    def call(self, x):
+        result = K.eval(super().call(x))
+        result.resize(self.input_spec.shape)
+        return result
+
+
 def conv1x1(out_planes, bias=False):
     #1x1 convolution with padding
     return Conv2D(
@@ -133,7 +141,9 @@ def CNN_ENCODER_RNN_DECODER(emb_size, hidden_size, vocab_size, rec_unit='gru'):
         'culstm': CuDNNLSTM
     }
     assert rec_unit in __rec_units, 'Specified recurrent unit is not available'
-
+    
+    print('Vocab size: {}'.format(vocab_size))
+    
     pic_input = Input(shape=(None,None,3,), name="cr_pic_input")
     upsamp = Lambda(lambda image: ktf.image.resize_images(image, (299, 299)))(
         pic_input)
@@ -151,7 +161,7 @@ def CNN_ENCODER_RNN_DECODER(emb_size, hidden_size, vocab_size, rec_unit='gru'):
     #rnn = GRU(hidden_size, return_sequences=True)(concat)
     rnn = __rec_units[rec_unit](
         hidden_size, return_sequences=True, recurrent_dropout=0.3)(concat)
-    out = Dense(vocab_size, activation='softmax', name='CR_out_layre')(rnn)
+    out = DebugDense(vocab_size, activation='softmax', name='CR_out_layre')(rnn)
     model = Model([pic_input, cap_input], out, name="CNN_RNN_DEC")
     return model
 
